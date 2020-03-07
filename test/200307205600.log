@@ -1,0 +1,55 @@
+2020-03-07 20:56:00,107 - utils.py[line:87] - INFO: logfile = test\200307205600.log
+2020-03-07 20:56:04,429 - main_gcnclf.py[line:69] - INFO: Load model from test\models\Iter__1__272_0.pkl
+2020-03-07 20:56:04,722 - main_gcnclf.py[line:87] - INFO: Namespace(batch_size=32, epochs=50, gpu=0, lr=0.001, margin=5.0, print_every=100, save=1, save_dir='test', save_every=500, single=0, start_from=None)
+2020-03-07 20:56:07,272 - main_gcnclf.py[line:42] - INFO: Precision: 0.2727, bestPrecsion: 0.2727
+epochs: 1,  loss: [0.0, 0.0],  (eval cpu time: 2.5505435466766357s)
+2020-03-07 20:56:09,167 - main_gcnclf.py[line:96] - INFO: epochs: 1,  loss: [1.918470022701981, 0.28836633663366334],  steps: 100
+2020-03-07 20:56:11,058 - main_gcnclf.py[line:96] - INFO: epochs: 1,  loss: [1.9039544870357703, 0.31373762376237624],  steps: 200
+2020-03-07 20:56:12,759 - main_gcnclf.py[line:96] - INFO: epochs: 1,  loss: [1.8718959163911273, 0.3208539603960396],  steps: 300
+2020-03-07 20:56:14,712 - main_gcnclf.py[line:96] - INFO: epochs: 1,  loss: [1.7728484196238, 0.3780940594059406],  steps: 400
+2020-03-07 20:56:21,196 - main_gcnclf.py[line:42] - INFO: Precision: 0.4104, bestPrecsion: 0.4104
+epochs: 1,  loss: [1.7335352437330944, 0.3935643564356436],  (eval cpu time: 4.45050573348999s)
+2020-03-07 20:56:21,228 - main_gcnclf.py[line:96] - INFO: epochs: 1,  loss: [1.7335352437330944, 0.3935643564356436],  steps: 500
+2020-03-07 20:56:23,714 - main_gcnclf.py[line:96] - INFO: epochs: 1,  loss: [1.683070456627572, 0.41367574257425743],  steps: 600
+2020-03-07 20:56:25,434 - main_gcnclf.py[line:96] - INFO: epochs: 1,  loss: [1.6656862202257212, 0.42419554455445546],  steps: 700
+2020-03-07 20:56:27,030 - main_gcnclf.py[line:96] - INFO: epochs: 1,  loss: [1.6212752018824663, 0.4381188118811881],  steps: 800
+2020-03-07 20:56:29,279 - main_gcnclf.py[line:96] - INFO: epochs: 1,  loss: [1.543090304525772, 0.47896039603960394],  steps: 900
+2020-03-07 20:56:33,960 - main_gcnclf.py[line:42] - INFO: Precision: 0.5004, bestPrecsion: 0.5004
+epochs: 1,  loss: [1.518726641588872, 0.4749381188118812],  (eval cpu time: 2.311680316925049s)
+2020-03-07 20:56:33,965 - main_gcnclf.py[line:96] - INFO: epochs: 1,  loss: [1.518726641588872, 0.4749381188118812],  steps: 1000
+2020-03-07 20:56:36,408 - main_gcnclf.py[line:96] - INFO: epochs: 1,  loss: [1.5001693533198668, 0.48917079207920794],  steps: 1100
+2020-03-07 20:56:39,217 - main_gcnclf.py[line:96] - INFO: epochs: 1,  loss: [1.4797438760795216, 0.49535891089108913],  steps: 1200
+2020-03-07 20:56:42,142 - main_gcnclf.py[line:96] - INFO: epochs: 1,  loss: [1.4484354104145918, 0.5024752475247525],  steps: 1300
+2020-03-07 20:56:44,032 - main_gcnclf.py[line:96] - INFO: epochs: 1,  loss: [1.4492628822232236, 0.5083539603960396],  steps: 1400
+2020-03-07 20:56:47,446 - main_gcnclf.py[line:42] - INFO: Precision: 0.5303, bestPrecsion: 0.5303
+epochs: 1,  loss: [1.3831835530772068, 0.525680693069307],  (eval cpu time: 1.5641100406646729s)
+2020-03-07 20:56:47,450 - main_gcnclf.py[line:96] - INFO: epochs: 1,  loss: [1.3831835530772068, 0.525680693069307],  steps: 1500
+2020-03-07 20:56:49,213 - main_gcnclf.py[line:96] - INFO: epochs: 1,  loss: [1.3959501592239532, 0.5225866336633663],  steps: 1600
+2020-03-07 20:56:51,520 - main_gcnclf.py[line:96] - INFO: epochs: 1,  loss: [1.3774014180249508, 0.5170173267326733],  steps: 1700
+2020-03-07 20:56:53,677 - main_gcnclf.py[line:96] - INFO: epochs: 1,  loss: [1.3652091321378652, 0.5374381188118812],  steps: 1800
+2020-03-07 20:56:55,740 - main_gcnclf.py[line:96] - INFO: epochs: 2,  loss: [1.3550748116899245, 0.5266089108910891],  steps: 1900
+2020-03-07 20:57:00,241 - main_gcnclf.py[line:42] - INFO: Precision: 0.5505, bestPrecsion: 0.5505
+epochs: 2,  loss: [1.3462746208257015, 0.5334158415841584],  (eval cpu time: 2.568359375s)
+2020-03-07 20:57:00,248 - main_gcnclf.py[line:96] - INFO: epochs: 2,  loss: [1.3462746208257015, 0.5334158415841584],  steps: 2000
+2020-03-07 20:57:02,942 - main_gcnclf.py[line:96] - INFO: epochs: 2,  loss: [1.3588099686226043, 0.5380569306930693],  steps: 2100
+2020-03-07 20:57:04,928 - main_gcnclf.py[line:96] - INFO: epochs: 2,  loss: [1.350703262456573, 0.5331064356435643],  steps: 2200
+2020-03-07 20:57:07,237 - main_gcnclf.py[line:96] - INFO: epochs: 2,  loss: [1.3537927801066105, 0.5383663366336634],  steps: 2300
+2020-03-07 20:57:09,496 - main_gcnclf.py[line:96] - INFO: epochs: 2,  loss: [1.3243048657285106, 0.5464108910891089],  steps: 2400
+2020-03-07 20:57:12,749 - main_gcnclf.py[line:42] - INFO: Precision: 0.5633, bestPrecsion: 0.5633
+epochs: 2,  loss: [1.3412205057569069, 0.5411509900990099],  (eval cpu time: 1.528127670288086s)
+2020-03-07 20:57:12,752 - main_gcnclf.py[line:96] - INFO: epochs: 2,  loss: [1.3412205057569069, 0.5411509900990099],  steps: 2500
+2020-03-07 20:57:14,364 - main_gcnclf.py[line:96] - INFO: epochs: 2,  loss: [1.3442292213439941, 0.53125],  steps: 2600
+2020-03-07 20:57:15,989 - main_gcnclf.py[line:96] - INFO: epochs: 2,  loss: [1.2888455644692525, 0.5590965346534653],  steps: 2700
+2020-03-07 20:57:17,756 - main_gcnclf.py[line:96] - INFO: epochs: 2,  loss: [1.302829631484381, 0.5563118811881188],  steps: 2800
+2020-03-07 20:57:19,369 - main_gcnclf.py[line:96] - INFO: epochs: 2,  loss: [1.3077686517545493, 0.5541460396039604],  steps: 2900
+2020-03-07 20:57:22,598 - main_gcnclf.py[line:42] - INFO: Precision: 0.5796, bestPrecsion: 0.5796
+epochs: 2,  loss: [1.292177445817702, 0.5600247524752475],  (eval cpu time: 1.595088243484497s)
+2020-03-07 20:57:22,600 - main_gcnclf.py[line:96] - INFO: epochs: 2,  loss: [1.292177445817702, 0.5600247524752475],  steps: 3000
+2020-03-07 20:57:24,249 - main_gcnclf.py[line:96] - INFO: epochs: 2,  loss: [1.2770517751722053, 0.5689975247524752],  steps: 3100
+2020-03-07 20:57:26,052 - main_gcnclf.py[line:96] - INFO: epochs: 2,  loss: [1.2822572217129244, 0.5659034653465347],  steps: 3200
+2020-03-07 20:57:28,100 - main_gcnclf.py[line:96] - INFO: epochs: 2,  loss: [1.300845180407609, 0.5609529702970297],  steps: 3300
+2020-03-07 20:57:30,046 - main_gcnclf.py[line:96] - INFO: epochs: 2,  loss: [1.2913247311469351, 0.562190594059406],  steps: 3400
+2020-03-07 20:57:35,210 - main_gcnclf.py[line:42] - INFO: Precision: 0.584, bestPrecsion: 0.584
+epochs: 2,  loss: [1.2681068500669876, 0.5761138613861386],  (eval cpu time: 2.4877943992614746s)
+2020-03-07 20:57:35,214 - main_gcnclf.py[line:96] - INFO: epochs: 2,  loss: [1.2681068500669876, 0.5761138613861386],  steps: 3500
+2020-03-07 20:57:37,619 - main_gcnclf.py[line:96] - INFO: epochs: 2,  loss: [1.2794285865113286, 0.5662128712871287],  steps: 3600
