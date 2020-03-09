@@ -18,13 +18,16 @@ def _mnist(train=True):
     )
 
 
+mnist = _mnist
+
+
 class Mnist(torchDataset):
     def __init__(self, train=True, doaug=False, exp3ch=False, out_sz=None):
         super(Mnist, self).__init__()
         self.dataset = _mnist(train)
         self.doaug = doaug
         self.exp3ch = exp3ch
-        # self.dataset.data = self.dataset.data.reshape([len(self.dataset.data), -1])
+        # self.dataset.data = self.dataset.data.reshape([len(self.dataset.data), 28**2, -1])
         # self.dataset.data = torch.from_numpy(self.dataset.data)
         self.dataset.targets = self.dataset.targets.reshape(-1)
         # self.dataset.targets = torch.from_numpy(self.dataset.targets)

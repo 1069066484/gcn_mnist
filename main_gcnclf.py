@@ -34,7 +34,7 @@ def _test_and_save(epochs, data_test, model, logger, args, loss_sum):
     if not hasattr(_test_and_save, 'best_acc'):
         _test_and_save.best_acc = 0
     start_cpu_t = time.time()
-    pre = _eval(model=model, data=data_test)
+    pre = _eval(model=model, data=data_test, batch_size=args.batch_size*3)
 
     logger.info("Precision: {}, bestPrecsion: {}".format(
         pre, max(pre, _test_and_save.best_acc)) +
@@ -81,7 +81,9 @@ def _init_dataset(args):
 
 
 def _train(args, dataloader_train, data_test, logger):
-    model = GCNCLF(layers=[28, 20, 10], logger=logger, lr=args.lr, method='cos')
+    model = GCNCLF(layers=[28, 16, 10, -1], logger=logger, lr=args.lr, method='dg2')
+    # model = GCNCLF(layers=[1, 1, -64, 10, -1], logger=logger, lr=args.lr, method='cos')
+    print(model)
     model.cuda()
     epochs = _try_load(args, logger, model)
     logger.info(str(args))
