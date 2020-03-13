@@ -77,7 +77,7 @@ class GCNLayer(nn.Module):
         self.act = act
 
     def forward(self, inputs, Ah):
-        out = Ah @ self.linear(inputs)
+        out = self.linear(Ah @ inputs)
         if self.act is not None:
             return self.act(out)
         return out
@@ -103,21 +103,43 @@ def calc_Ahat(A=None, inputs=None, method='eye', retA=False):
             A[1:, :-1] = torch.eye(inputs.shape[1]-1).cuda()
             A += A.T
             A = torch.stack([A] * inputs.shape[0])
+        elif method == 'ful':
+            A = torch.ones([inputs.shape[1], inputs.shape[1]]).cuda()
+            A = torch.stack([A] * inputs.shape[0])
         else:
             raise Exception("Expect method to be 'eye' or 'cos', but got {}.".format(method))
     else:
         # A += torch.stack([torch.eye(A.shape[1]).cuda()] * A.shape[0])
         pass
-    D = torch.sum(A, dim=-1)
+    D = torch.sum(A, dim=1)
     # print(D[:2,:2])
-    D = torch.stack([torch.diag(d).cuda() for d in D]) # torch.diag(D).float()
-    D = torch.inverse(D) ** 0.5
+    # D = torch.stack([torch.diag(d).cuda() for d in D]) # torch.diag(D).float()
+    # D = torch.inverse(D) ** 0.5
+    D_hat = (D + 1e-5) ** (-0.5)
     # Ah = torch.stack([D[i] @ A[i] @ D[i] for i in range(len(inputs))])
-    Ah = D @ A @ D
+    Ah = D_hat.view(inputs.shape[0], inputs.shape[1], 1) * A * D_hat.view(inputs.shape[0], 1, inputs.shape[1])
+    # print(Ah.shape); exit()
     if retA:
         return Ah, A
     return Ah
 
+"""
+    def laplacian_batch(self, A):
+        # bs * nodeOfGraph * nodeOfGraph
+        batch, N = A.shape[:2]
+        if self.adj_sq:
+            A = torch.bmm(A, A)  # use A^2 to increase graph connectivity
+        A_hat = A
+        if self.K < 2 or self.scale_identity:
+            I = torch.eye(N).unsqueeze(0).to(args.device)
+            if self.scale_identity:
+                I = 2 * I  # increase weight of self connections
+            if self.K < 2:
+                A_hat = A + I
+        D_hat = (torch.sum(A_hat, 1) + 1e-5) ** (-0.5)
+        L = D_hat.view(batch, N, 1) * A_hat * D_hat.view(batch, 1, N)
+        return L
+"""
 
 def calc_lp_le(A, S):
     """
@@ -190,6 +212,26 @@ class HPool(nn.Module):
         return x_next, A_new
 
 
+class MPool(nn.Module):
+    def __init__(self, type='mean'):
+        super(MPool, self).__init__()
+        self.type = type
+
+    def forward(self, inputs):
+        if self.type == 'mean':
+            return torch.mean(inputs, 1)
+        elif self.type == 'max':
+            return torch.max(inputs, 1)[0]
+
+
+class Flatten(nn.Module):
+    def __init__(self):
+        super(Flatten, self).__init__()
+
+    def forward(self, inputs):
+        return inputs.reshape(inputs.shape[0], -1)
+
+
 class GCNCLF(nn.Module):
     def __init__(self, layers, lr, logger=None, method='eye'):
         super(GCNCLF, self).__init__()
@@ -200,18 +242,27 @@ class GCNCLF(nn.Module):
         self.cross_ent = nn.CrossEntropyLoss()
         self.layers = layers
         self.features = nn.Sequential(*self._init_feats())
-        self.opt = Adam(lr=lr, params=sum([list(model.parameters()) for model in self.features], []))
+        self.opt = Adam(lr=lr, params=sum(
+            [list(model.parameters()) for model in self.features if not isinstance(model, MPool)], []))
 
     def _init_feats(self):
         curr_feats = []
         features = []
         for layer in self.layers:
-            if layer > 0:
+            if isinstance(layer, int) and layer > 0:
                 curr_feats.append(layer)
+            elif isinstance(layer, str):
+                features.append(GCN(layers=curr_feats, last_act=None, method=self.method))
+                features.append(MPool(layer))
+                curr_feats = [curr_feats[-1]]
             else:
                 features.append(GCN(layers=curr_feats, last_act=None, method=self.method))
                 features.append(HPool(in_feat_d=curr_feats[-1], out_nodes=-layer))
                 curr_feats = [curr_feats[-1]]
+        if len(curr_feats):
+            features.append(Flatten())
+            # print(curr_feats); exit()
+            features.append(MLP(curr_feats))
         return features
 
     def forward(self, inputs, with_loss=False, A=None):
@@ -229,6 +280,8 @@ class GCNCLF(nn.Module):
                     L_lp_, L_e_ = calc_lp_le(A=feature.Ah, S=feature.s)
                     L_lp += L_lp_
                     L_e += L_e_
+            elif isinstance(feature, MPool) or isinstance(feature, MLP) or isinstance(feature, Flatten):
+                xs = feature(xs)
             else:
                 raise Exception("Wrong module: {}".format(feature))
         out = xs.reshape([xs.shape[0], -1])
