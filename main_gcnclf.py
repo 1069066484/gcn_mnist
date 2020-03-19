@@ -81,8 +81,11 @@ def _init_dataset(args):
 
 
 def _train(args, dataloader_train, data_test, logger):
-    model = GCNCLF(layers=[28, 64, 64, 64, 'max', 64, 10], logger=logger, lr=args.lr, method='dg2')
-    # model = GCNCLF(layers=[1, 1, -64, 10, -1], logger=logger, lr=args.lr, method='ful')
+    model = GCNCLF(layers=[28, 64, 64, 64, 'max', 64, 10], logger=logger, lr=args.lr, method='ful')
+    model = GCNCLF(layers=[28, 64, 64, -8, 128, 128, 'max', 32, 10], logger=logger, lr=args.lr, method='ful')
+    model = GCNCLF(layers=[28, 64, 128, 'max', 128, 10], logger=logger, lr=args.lr, method='dg2')
+    model = GCNCLF(layers=[28, 64, 128, -1, 128, 10], logger=logger, lr=args.lr, method='dg2', cat=False)
+    model = GCNCLF(layers=[28, 64, 128, -4, 256, 'max', 128, 10], logger=logger, lr=args.lr, method='dg2')
     print(model)
     model.cuda()
     epochs = _try_load(args, logger, model)

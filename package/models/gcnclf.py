@@ -70,17 +70,52 @@ class NormLayer(nn.Module):
         return F.normalize(x)
 
 
-class GCNLayer(nn.Module):
+class GCNLayer_(nn.Module):
     def __init__(self, in_dim, out_dim, act=nn.ReLU(), bias=False):
-        super(GCNLayer, self).__init__()
+        super(GCNLayer_, self).__init__()
+        bias = False
         self.linear = nn.Linear(in_dim, out_dim, bias=bias)
         self.act = act
 
     def forward(self, inputs, Ah):
-        out = self.linear(Ah @ inputs)
+        if 1:
+            out = self.linear(inputs)
+            out = torch.matmul(out.transpose(1, 2), Ah.transpose(1, 2))
+            out = out.transpose(1, 2)
+            return out
+        out = Ah @ self.linear(inputs)
         if self.act is not None:
             return self.act(out)
         return out
+
+
+import math
+class GCNLayer(nn.Module):
+    def __init__(self, in_dim, out_dim, act=nn.ReLU(), bias=False):
+        super(GCNLayer, self).__init__()
+        bias = False
+        self.dims = [in_dim, out_dim]
+        self.weight = nn.Parameter(torch.FloatTensor(in_dim, out_dim))
+        stdv = 1. / math.sqrt(self.weight.size(1))
+        self.weight.data.uniform_(-stdv, stdv)
+        self.act = act
+
+    def forward(self, inputs, Ah):
+        #print(inputs.shape, self.dims)
+        support = torch.matmul(inputs, self.weight)
+        output = torch.matmul(support.transpose(1, 2), Ah.transpose(1, 2))
+        out = output.transpose(1, 2)
+        # print(inputs[0,:2,:2], output[0,:2,:2])
+        #print(output.shape)
+        #exit()
+        if self.act is not None:
+            return self.act(out)
+        return out
+
+    def __repr__(self):
+        return self.__class__.__name__ + ' (' \
+               + str(self.dims[0]) + ' -> ' \
+               + str(self.dims[1]) + ')@' + str(self.act)
 
 
 def calc_Ahat(A=None, inputs=None, method='eye', retA=False):
@@ -97,9 +132,10 @@ def calc_Ahat(A=None, inputs=None, method='eye', retA=False):
             A = eye
         elif method == 'cos':
             # normed_inputs = F.normalize(inputs, dim=-1)
-            A = inputs @ inputs.permute(0, 2, 1) + eye
+            A = inputs @ inputs.permute(0, 2, 1)
         elif method == 'dg2':
-            A = torch.eye(inputs.shape[1]).cuda()
+            # A = torch.eye(inputs.shape[1]).cuda()
+            A = torch.zeros(inputs.shape[1:]).cuda()
             A[1:, :-1] = torch.eye(inputs.shape[1]-1).cuda()
             A += A.T
             A = torch.stack([A] * inputs.shape[0])
@@ -111,35 +147,40 @@ def calc_Ahat(A=None, inputs=None, method='eye', retA=False):
     else:
         # A += torch.stack([torch.eye(A.shape[1]).cuda()] * A.shape[0])
         pass
+    if 1:
+        Ah = norm(A)
+        if retA:
+            return Ah, A
+        return Ah
     D = torch.sum(A, dim=1)
     # print(D[:2,:2])
     # D = torch.stack([torch.diag(d).cuda() for d in D]) # torch.diag(D).float()
     # D = torch.inverse(D) ** 0.5
     D_hat = (D + 1e-5) ** (-0.5)
+    # D_hat = torch.sqrt(torch.inverse(D))
     # Ah = torch.stack([D[i] @ A[i] @ D[i] for i in range(len(inputs))])
+    # diag_deg = torch.diag_embed(deg_abs_sqrt, dim1=-2, dim2=-1)
     Ah = D_hat.view(inputs.shape[0], inputs.shape[1], 1) * A * D_hat.view(inputs.shape[0], 1, inputs.shape[1])
     # print(Ah.shape); exit()
     if retA:
         return Ah, A
     return Ah
 
-"""
-    def laplacian_batch(self, A):
-        # bs * nodeOfGraph * nodeOfGraph
-        batch, N = A.shape[:2]
-        if self.adj_sq:
-            A = torch.bmm(A, A)  # use A^2 to increase graph connectivity
-        A_hat = A
-        if self.K < 2 or self.scale_identity:
-            I = torch.eye(N).unsqueeze(0).to(args.device)
-            if self.scale_identity:
-                I = 2 * I  # increase weight of self connections
-            if self.K < 2:
-                A_hat = A + I
-        D_hat = (torch.sum(A_hat, 1) + 1e-5) ** (-0.5)
-        L = D_hat.view(batch, N, 1) * A_hat * D_hat.view(batch, 1, N)
-        return L
-"""
+
+def norm(adj):
+  node_num = adj.shape[-1]
+  # add remaining self-loops
+  self_loop = torch.eye(node_num).cuda()
+  self_loop = self_loop.reshape((1, node_num, node_num))
+  self_loop = self_loop.repeat(adj.shape[0], 1, 1)
+  adj_post = adj + self_loop
+  # signed adjacent matrix
+  deg_abs = torch.sum(torch.abs(adj_post), dim=-1)
+  deg_abs_sqrt = deg_abs.pow(-0.5)
+  diag_deg = torch.diag_embed(deg_abs_sqrt, dim1=-2, dim2=-1)
+  norm_adj = torch.matmul(torch.matmul(diag_deg, adj_post), diag_deg)
+  return norm_adj
+
 
 def calc_lp_le(A, S):
     """
@@ -151,11 +192,11 @@ def calc_lp_le(A, S):
     # print(A.shape, S.shape, (A - S @ S.permute(0,2,1)).shape)
     # exit()
     # L_lp = torch.mean(torch.norm(p='fro', input=A - S @ S.permute(0,2,1), dim=[1,2]))
-    link_loss = A - S @ S.permute(0,2,1) + 1e-8
+    link_loss = A - S @ S.permute(0,2,1) + 1e-16
     link_loss = torch.norm(link_loss, p=2)
     L_lp = link_loss / A.numel()
-    # L_e = -torch.mean(torch.sum(torch.log(S + 1e-8), dim=-1))
-    L_e = (-S * torch.log(S + 1e-8)).sum(dim=-1).mean()
+    # L_e = -torch.mean(torch.sum(torch.log(S + 1e-16), dim=-1))
+    L_e = (-S * torch.log(S + 1e-16)).sum(dim=-1).mean()
     # print(L_lp, L_e); exit()
     return L_lp, L_e
 
@@ -164,13 +205,14 @@ class GCN(nn.Module):
     """
     Define a 2-layer GCN model.
     """
-    def __init__(self, layers, Ah=None, act=nn.ReLU(inplace=True), last_act=nn.Sigmoid(), method='eye'):
+    def __init__(self, layers, Ah=None, act=nn.ReLU(inplace=True), last_act=nn.Sigmoid(), method='eye', cat=False):
         super(GCN, self).__init__()
         in_feats = layers[0]
         gcns = []
         self.Ah = Ah
         self.method = method
         self.act = act
+        self.cat = cat
         self.last_act = last_act
         for layer in layers[1:]:
             gcns.append(GCNLayer(in_feats, layer, act=self.last_act if layer==layers[-1] else self.act))
@@ -183,22 +225,55 @@ class GCN(nn.Module):
                 Ah = calc_Ahat(inputs=inputs, method=self.method)
             else:
                 Ah = self.Ah
+        inputs_l = []
         for i, layer in enumerate(self.features):
             inputs = layer(inputs, Ah=Ah)
+            inputs_l.append(inputs)
+        if self.cat:
+            inputs = torch.cat(inputs_l, dim=2)
         return inputs
+
+    def __repr__(self):
+        return self.__class__.__name__ + '\n' \
+               + 'cat: ' + str(bool(self.cat)) + '\n'\
+               + str(self.features)
 
 
 class HPool(nn.Module):
-    def __init__(self, in_feat_d, out_nodes):
+    def __init__(self, pool_nodes, x_feats, act=nn.ReLU(inplace=True), cat=False):
+        """
+        :param pool_nodes: [in_feat_d, ..., out_nodes]
+        :param x_feats: [in_feat_d, ..., out_feats]
+        """
         super(HPool, self).__init__()
         # S: batch_size * nl * n(l+1). Each row tells the chances the node belongs to the next-layer cluster
-        self.gcn_s = GCNLayer(in_feat_d, out_nodes, act=nn.Softmax(dim=-1))
-        self.Ah = 0
-        self.s = 0
+        # self.gcn_s = GCNLayer(in_feat_d, out_nodes, act=nn.Softmax(dim=-1))
+        # F.softmax(self.pool_linear(pooling_tensor), dim=-1)
+        # self.gcn_s = GCNLayer(in_feat_d, out_nodes, act=lambda x: F.softmax(x, dim=-1))
+        assert pool_nodes[0] == x_feats[0]
+        self.cat = cat
+        self.gcn_s = GCN(pool_nodes, last_act=nn.Softmax(dim=-1), act=act, cat=cat)
+        self.gcn_f = GCN(x_feats, last_act=act, act=act, cat=cat)
 
-    def forward(self, inputs, A, Ah):
-        A = Ah
+    def forward(self, inputs, A, Ah, with_loss=False):
         s = self.gcn_s(inputs, Ah=Ah)
+        inputs = self.gcn_f(inputs, Ah=Ah)
+        # print(s); exit()
+        if 1:
+            # print(inputs[0,:2,:2])
+            x_next = torch.matmul(s.transpose(1, 2), inputs)
+            A_new = torch.matmul(torch.matmul(s.transpose(1, 2), A), s)
+            # print(A_new[0, :2, :2])
+            if not with_loss:
+                return x_next, A_new
+            link_loss = A - torch.matmul(s, s.transpose(1, 2)) + 1e-16
+            link_loss = torch.norm(link_loss, p=2)
+            link_loss = link_loss / A.numel()
+            ent_loss = (-s * torch.log(s + 1e-16)).sum(dim=-1).mean()
+            # print(link_loss, ent_loss)
+            return x_next, A_new, link_loss, ent_loss
+
+
         # print(s.shape); print(s[0]); exit()
         # print(s.shape, inputs.shape, A.shape, Ah.shape) # torch.Size([256, 28, 10]) torch.Size([256, 28, 28]) torch.Size([256, 28, 28])
         # exit()
@@ -223,6 +298,9 @@ class MPool(nn.Module):
         elif self.type == 'max':
             return torch.max(inputs, 1)[0]
 
+    def __repr__(self):
+        return self.__class__.__name__ + '@' + str(self.type)
+
 
 class Flatten(nn.Module):
     def __init__(self):
@@ -233,7 +311,7 @@ class Flatten(nn.Module):
 
 
 class GCNCLF(nn.Module):
-    def __init__(self, layers, lr, logger=None, method='eye'):
+    def __init__(self, layers, lr, logger=None, method='eye', cat=True):
         super(GCNCLF, self).__init__()
         self.logger = logger
         self.num_cls = layers[-1]
@@ -241,6 +319,7 @@ class GCNCLF(nn.Module):
         self.method = method
         self.cross_ent = nn.CrossEntropyLoss()
         self.layers = layers
+        self.cat = cat
         self.features = nn.Sequential(*self._init_feats())
         self.opt = Adam(lr=lr, params=sum(
             [list(model.parameters()) for model in self.features if not isinstance(model, MPool)], []))
@@ -248,17 +327,24 @@ class GCNCLF(nn.Module):
     def _init_feats(self):
         curr_feats = []
         features = []
+        def update_curr_feats(feats):
+            if self.cat:
+                return [sum([f for f in feats[1:] if f > 0])]
+            else:
+                return [curr_feats[-1]]
         for layer in self.layers:
             if isinstance(layer, int) and layer > 0:
                 curr_feats.append(layer)
             elif isinstance(layer, str):
-                features.append(GCN(layers=curr_feats, last_act=None, method=self.method))
+                features.append(GCN(layers=curr_feats, last_act=nn.ReLU(), method=self.method, cat=self.cat))
                 features.append(MPool(layer))
-                curr_feats = [curr_feats[-1]]
+                curr_feats = update_curr_feats(curr_feats)
             else:
-                features.append(GCN(layers=curr_feats, last_act=None, method=self.method))
-                features.append(HPool(in_feat_d=curr_feats[-1], out_nodes=-layer))
-                curr_feats = [curr_feats[-1]]
+                # features.append(GCN(layers=curr_feats, last_act=nn.ReLU(), method=self.method))
+                pool_nodes = list(curr_feats)
+                pool_nodes[-1] = -layer
+                features.append(HPool(pool_nodes=pool_nodes, act=nn.ReLU(), x_feats=curr_feats, cat=self.cat))
+                curr_feats = update_curr_feats(curr_feats)
         if len(curr_feats):
             features.append(Flatten())
             # print(curr_feats); exit()
@@ -274,12 +360,13 @@ class GCNCLF(nn.Module):
             if isinstance(feature, GCN):
                 xs = feature(xs, Ah=Ah)
             elif isinstance(feature, HPool):
-                xs, Ah = feature(xs, A=Ah, Ah=Ah)
-                # print(Ah[0, :4, :4])
                 if with_loss:
-                    L_lp_, L_e_ = calc_lp_le(A=feature.Ah, S=feature.s)
+                    xs, A, L_lp_, L_e_ = feature(xs, A=Ah, Ah=Ah, with_loss=with_loss)
                     L_lp += L_lp_
                     L_e += L_e_
+                else:
+                    xs, A = feature(xs, A=Ah, Ah=Ah, with_loss=with_loss)
+                Ah = norm(A)
             elif isinstance(feature, MPool) or isinstance(feature, MLP) or isinstance(feature, Flatten):
                 xs = feature(xs)
             else:
@@ -297,6 +384,7 @@ class GCNCLF(nn.Module):
         self.opt.zero_grad()
         (loss + L_e + L_lp).backward()
         self.opt.step()
+        # print(loss, L_lp, L_e)
         return [loss, L_lp, L_e, acc]
 
     def optimize_params(self, inputs, label):
@@ -313,7 +401,7 @@ def _test_gcn_clf():
     print(out.shape)
 
 
-if __name__=='__main__':
+if __name__ == '__main__':
     _test_gcn_clf()
 
 
